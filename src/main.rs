@@ -1,3 +1,5 @@
+mod ascii;
+
 use image::{GenericImageView, DynamicImage};
 use std::env;
 use std::io::{Write, stdout};
@@ -14,12 +16,12 @@ fn main() {
     let img_path = &args[1];
 
     // Open the image file
-    let img = image::open(&img_path).expect("Failed to open image");
+    let img: DynamicImage = image::open(&img_path).expect("Failed to open image");
 
     // Get the terminal size
     let (term_width, term_height) = terminal_size().unwrap();
     let term_width = term_width as u32;
-    let term_height = term_height as u32;
+    let _term_height = term_height as u32;
 
     // Specify the approximate character height-to-width ratio
     let char_ratio = 2.0; // Height-to-width ratio
@@ -37,27 +39,12 @@ fn main() {
     // Convert the resized image to grayscale
     let gray_img = resized_img.grayscale();
 
-    // Map grayscale values to ASCII characters
-    let ascii_chars = vec!["@", "#", "8", "&", "o", ":", "*", ".", " "];
-    let ascii_scale = 255 / (ascii_chars.len() - 1) as u8;
-
-    // Create a buffer to hold the ASCII art
-    let mut ascii_art = Vec::new();
-    for y in 0..gray_img.height() {
-        let mut line = String::new();
-        for x in 0..gray_img.width() {
-            let pixel = gray_img.get_pixel(x, y);
-            let intensity = pixel[0];
-            let ascii_char = ascii_chars[(intensity / ascii_scale) as usize];
-            line.push_str(ascii_char);
-        }
-        ascii_art.push(line);
-    }
+    let ascii_vec = ascii::get_ascii_from_img_9asciis(&gray_img, true);
 
     // Print the ASCII art to the terminal
     let mut stdout = stdout().into_raw_mode().unwrap();
     // write!(stdout, "{}", termion::clear::All).unwrap();
-    for line in ascii_art {
+    for line in ascii_vec {
         write!(stdout, "{}\r\n", line).unwrap();
     }
     stdout.flush().unwrap();
