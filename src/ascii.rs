@@ -2,7 +2,8 @@ use image::{GenericImageView, DynamicImage};
 
 #[derive(Debug)]
 pub enum AsciiCharset {
-    Square,
+    StandardBlock,
+    UnicodeBlock,
     NineAscii,
     Custom(Vec<&'static str>),
 }
@@ -10,7 +11,8 @@ pub enum AsciiCharset {
 impl AsciiCharset {
     fn get_chars(&self) -> Vec<&'static str> {
         match self {
-            AsciiCharset::Square => vec!["█", "▓", "▒", "░", " "],
+            AsciiCharset::StandardBlock => vec!["█", "▓", "▒", "░", " "],
+            AsciiCharset::UnicodeBlock => vec!["█","▇", "▆", "▅", "▄", "▃", "▂", "▁", " "],
             AsciiCharset::NineAscii => vec!["@", "#", "8", "&", "o", ":", "*", ".", " "],
             AsciiCharset::Custom(chars) => chars.clone(),
         }
