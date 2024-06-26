@@ -6,6 +6,8 @@ use std::io::{Write, stdout};
 use termion::raw::IntoRawMode;
 use termion::terminal_size;
 
+use ascii::AsciiCharset;
+
 fn main() {
     // Get the image path from command line arguments
     let args: Vec<String> = env::args().collect();
@@ -39,13 +41,11 @@ fn main() {
     // Convert the resized image to grayscale
     let gray_img = resized_img.grayscale();
 
-    let ascii_vec = ascii::get_ascii_from_img_9asciis(&gray_img, true);
+    let ascii_vec = ascii::get_ascii_from_img(&gray_img,AsciiCharset::Square, true);
 
     // Print the ASCII art to the terminal
     let mut stdout = stdout().into_raw_mode().unwrap();
     // write!(stdout, "{}", termion::clear::All).unwrap();
-    for line in ascii_vec {
-        write!(stdout, "{}\r\n", line).unwrap();
-    }
+    write!(stdout, "{}\r\n", ascii_vec).unwrap();
     stdout.flush().unwrap();
 }
