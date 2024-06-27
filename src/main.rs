@@ -33,6 +33,10 @@ fn display_image(img_path: &str) {
     // Open the image file
     let img: DynamicImage = image::open(&img_path).expect("Failed to open image");
     let converter = AsciiConverter::default();
+    // let converter = AsciiConverter{
+    //     use_color:false,
+    //     ..Default::default()
+    // };
 
     let (term_width, _term_height) = terminal_size().unwrap();
     let ascii_str = converter.image_to_ascii(img, term_width as u32);
@@ -55,6 +59,10 @@ fn display_gif(gif_path: &str) {
     let mut stdout = stdout().into_raw_mode().unwrap();
     let (term_width, _term_height) = terminal_size().unwrap();
     let converter = AsciiConverter::default();
+    // let converter = AsciiConverter{
+    //     use_color:false,
+    //     ..Default::default()
+    // };
 
     let mut previous_lines = 0;
 
