@@ -6,7 +6,7 @@ use std::env;
 use std::fs::File;
 use std::io::{Write, stdout};
 use termion::raw::IntoRawMode;
-use termion::terminal_size;
+use termion::{terminal_size, cursor};
 use std::time::Duration;
 use std::thread::sleep;
 
@@ -56,15 +56,25 @@ fn display_gif(gif_path: &str) {
     let (term_width, _term_height) = terminal_size().unwrap();
     let converter = AsciiConverter::default();
 
+    let mut previous_lines = 0;
+
     while let Some(frame) = decoder.read_next_frame().unwrap() {
         let img = DynamicImage::ImageRgba8(
             image::RgbaImage::from_raw(frame.width.into(), frame.height.into(), frame.buffer.to_vec()).unwrap()
         );
 
         let ascii_str = converter.image_to_ascii(img, term_width as u32);
+        let lines_count = ascii_str.lines().count();
+
+        // Move cursor up by the number of lines in the previous frame
+        if previous_lines > 0 {
+            write!(stdout, "{}", cursor::Up((previous_lines+1) as u16)).unwrap();
+        }
 
         write!(stdout, "{}\r\n", ascii_str).unwrap();
         stdout.flush().unwrap();
+
+        previous_lines = lines_count;
 
         sleep(Duration::from_millis(100)); // Adjust frame delay as needed
     }
