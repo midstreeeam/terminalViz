@@ -1,19 +1,16 @@
 #[allow(unused)]
-// #[allow(dead_code)]
-
 mod ascii;
 
-use image::{GenericImageView, DynamicImage};
-use gif::Decoder;
+use image::DynamicImage;
 use std::env;
 use std::fs::File;
-use std::io::{Write, stdout, BufReader};
+use std::io::{Write, stdout};
 use termion::raw::IntoRawMode;
 use termion::terminal_size;
 use std::time::Duration;
 use std::thread::sleep;
 
-use ascii::AsciiCharset;
+use ascii::AsciiConverter;
 
 fn main() {
     // Get the image path from command line arguments
@@ -35,33 +32,14 @@ fn main() {
 fn display_image(img_path: &str) {
     // Open the image file
     let img: DynamicImage = image::open(&img_path).expect("Failed to open image");
+    let converter = AsciiConverter::default();
 
-    // Get the terminal size
-    let (term_width, term_height) = terminal_size().unwrap();
-    let term_width = term_width as u32;
-    let _term_height = term_height as u32;
-
-    // Specify the approximate character height-to-width ratio
-    let char_ratio = 2.0; // Height-to-width ratio
-
-    // Calculate the aspect ratio of the image
-    let (img_width, img_height) = img.dimensions();
-    let aspect_ratio = img_height as f32 / img_width as f32;
-
-    // Adjust aspect ratio for terminal characters
-    let adjusted_height = (term_width as f32 * aspect_ratio / char_ratio) as u32;
-
-    // Resize the image to fit terminal width while maintaining aspect ratio
-    let resized_img = img.resize_exact(term_width, adjusted_height, image::imageops::FilterType::Nearest);
-
-    // Convert the resized image to grayscale
-    let gray_img = resized_img.grayscale();
-
-    let ascii_vec = ascii::get_ascii_from_img(&gray_img, AsciiCharset::UnicodeBlock, true);
+    let (term_width, _term_height) = terminal_size().unwrap();
+    let ascii_str = converter.image_to_ascii(img, term_width as u32);
 
     // Print the ASCII art to the terminal
     let mut stdout = stdout().into_raw_mode().unwrap();
-    write!(stdout, "{}\r\n", ascii_vec).unwrap();
+    write!(stdout, "{}\r\n", ascii_str).unwrap();
     stdout.flush().unwrap();
 }
 
@@ -75,27 +53,17 @@ fn display_gif(gif_path: &str) {
     let mut decoder = options.read_info(file).unwrap();
 
     let mut stdout = stdout().into_raw_mode().unwrap();
-    let (term_width, term_height) = terminal_size().unwrap();
-    let term_width = term_width as u32;
-
-    let char_ratio = 2.0;
+    let (term_width, _term_height) = terminal_size().unwrap();
+    let converter = AsciiConverter::default();
 
     while let Some(frame) = decoder.read_next_frame().unwrap() {
-        // let buffer = frame.buffer;
         let img = DynamicImage::ImageRgba8(
             image::RgbaImage::from_raw(frame.width.into(), frame.height.into(), frame.buffer.to_vec()).unwrap()
         );
 
-        let (img_width, img_height) = img.dimensions();
-        let aspect_ratio = img_height as f32 / img_width as f32;
+        let ascii_str = converter.image_to_ascii(img, term_width as u32);
 
-        let adjusted_height = (term_width as f32 * aspect_ratio / char_ratio) as u32;
-        let resized_img = img.resize_exact(term_width, adjusted_height, image::imageops::FilterType::Nearest);
-        let gray_img = resized_img.grayscale();
-
-        let ascii_vec = ascii::get_ascii_from_img(&gray_img, AsciiCharset::UnicodeBlock, true);
-
-        write!(stdout, "{}\r\n", ascii_vec).unwrap();
+        write!(stdout, "{}\r\n", ascii_str).unwrap();
         stdout.flush().unwrap();
 
         sleep(Duration::from_millis(100)); // Adjust frame delay as needed

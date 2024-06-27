@@ -19,6 +19,43 @@ impl AsciiCharset {
     }
 }
 
+pub struct AsciiConverter {
+    char_ratio: f32,
+    char_set: AsciiCharset,
+    use_all_ascii: bool
+}
+
+impl Default for AsciiConverter {
+    fn default() -> Self {
+        AsciiConverter { 
+            char_ratio: 2.0, 
+            char_set: AsciiCharset::UnicodeBlock, 
+            use_all_ascii: true 
+        }
+    }
+}
+
+impl AsciiConverter {
+
+    pub fn image_to_ascii(&self, img: DynamicImage, term_width: u32) -> String {
+        // Calculate the aspect ratio of the image
+        let (img_width, img_height) = img.dimensions();
+        let aspect_ratio = img_height as f32 / img_width as f32;
+
+        // Adjust aspect ratio for terminal characters
+        let adjusted_height = (term_width as f32 * aspect_ratio / self.char_ratio) as u32;
+
+        // Resize the image to fit terminal width while maintaining aspect ratio
+        let resized_img = img.resize_exact(term_width, adjusted_height, image::imageops::FilterType::Nearest);
+
+        // Convert the resized image to grayscale
+        let gray_img = resized_img.grayscale();
+
+        // Convert the grayscale image to ASCII
+        get_ascii(&gray_img, &self.char_set, self.use_all_ascii)
+    }
+}
+
 fn calculate_intensity_range(gray_img: &DynamicImage) -> (u8, u8) {
     let mut min_intensity = 255;
     let mut max_intensity = 0;
@@ -69,7 +106,7 @@ fn generate_ascii_art(gray_img: &DynamicImage, ascii_chars: Vec<&str>, use_all_a
     ascii_art
 }
 
-pub fn get_ascii_from_img(gray_img: &DynamicImage, charset: AsciiCharset, use_all_ascii: bool) -> String {
+fn get_ascii(gray_img: &DynamicImage, charset: &AsciiCharset, use_all_ascii: bool) -> String {
     let ascii_chars = charset.get_chars();
     generate_ascii_art(gray_img, ascii_chars, use_all_ascii)
 }
