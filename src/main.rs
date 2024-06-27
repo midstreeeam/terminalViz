@@ -1,7 +1,8 @@
 #[allow(unused)]
 mod ascii;
 
-use image::DynamicImage;
+use gif::DecodeOptions;
+use image::{DynamicImage, RgbaImage};
 use std::env;
 use std::fs::File;
 use std::io::{Write, stdout};
@@ -23,7 +24,7 @@ fn main() {
 
     // Check file extension to determine if it's a GIF
     if img_path.ends_with(".gif") {
-        display_gif(img_path);
+        display_gif(img_path, 30);
     } else {
         display_image(img_path);
     }
@@ -47,11 +48,11 @@ fn display_image(img_path: &str) {
     stdout.flush().unwrap();
 }
 
-fn display_gif(gif_path: &str) {
+fn display_gif(gif_path: &str, fps: u32) {
     let file = File::open(gif_path).unwrap();
 
     // Configure the decoder such that it will expand the image to RGBA.
-    let mut options = gif::DecodeOptions::new();
+    let mut options = DecodeOptions::new();
     options.set_color_output(gif::ColorOutput::RGBA);
 
     let mut decoder = options.read_info(file).unwrap();
@@ -59,16 +60,13 @@ fn display_gif(gif_path: &str) {
     let mut stdout = stdout().into_raw_mode().unwrap();
     let (term_width, _term_height) = terminal_size().unwrap();
     let converter = AsciiConverter::default();
-    // let converter = AsciiConverter{
-    //     use_color:false,
-    //     ..Default::default()
-    // };
 
     let mut previous_lines = 0;
+    let frame_delay = Duration::from_secs_f32(1.0 / fps as f32);
 
     while let Some(frame) = decoder.read_next_frame().unwrap() {
         let img = DynamicImage::ImageRgba8(
-            image::RgbaImage::from_raw(frame.width.into(), frame.height.into(), frame.buffer.to_vec()).unwrap()
+            RgbaImage::from_raw(frame.width.into(), frame.height.into(), frame.buffer.to_vec()).unwrap()
         );
 
         let ascii_str = converter.image_to_ascii(img, term_width as u32);
@@ -84,6 +82,6 @@ fn display_gif(gif_path: &str) {
 
         previous_lines = lines_count;
 
-        sleep(Duration::from_millis(100)); // Adjust frame delay as needed
+        sleep(frame_delay); // Adjust frame delay based on fps input
     }
 }
