@@ -1,7 +1,10 @@
+#[allow(unused)]
+// #[allow(dead_code)]
+
 mod ascii;
 
 use image::{GenericImageView, DynamicImage};
-use gif::{Decoder, Frame};
+use gif::Decoder;
 use std::env;
 use std::fs::File;
 use std::io::{Write, stdout, BufReader};
@@ -64,15 +67,24 @@ fn display_image(img_path: &str) {
 
 fn display_gif(gif_path: &str) {
     let file = File::open(gif_path).unwrap();
-    let mut decoder = Decoder::new(BufReader::new(file)).unwrap();
+
+    // Configure the decoder such that it will expand the image to RGBA.
+    let mut options = gif::DecodeOptions::new();
+    options.set_color_output(gif::ColorOutput::RGBA);
+
+    let mut decoder = options.read_info(file).unwrap();
+
     let mut stdout = stdout().into_raw_mode().unwrap();
     let (term_width, term_height) = terminal_size().unwrap();
     let term_width = term_width as u32;
 
     let char_ratio = 2.0;
 
-    while let Ok(Some(frame)) = decoder.read_next_frame() {
-        let img = DynamicImage::ImageRgba8(image::RgbaImage::from_raw(frame.width.into(), frame.height.into(), frame.buffer.to_vec()).unwrap());
+    while let Some(frame) = decoder.read_next_frame().unwrap() {
+        // let buffer = frame.buffer;
+        let img = DynamicImage::ImageRgba8(
+            image::RgbaImage::from_raw(frame.width.into(), frame.height.into(), frame.buffer.to_vec()).unwrap()
+        );
 
         let (img_width, img_height) = img.dimensions();
         let aspect_ratio = img_height as f32 / img_width as f32;
