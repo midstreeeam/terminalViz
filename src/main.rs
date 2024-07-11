@@ -6,10 +6,11 @@ use image::{DynamicImage, RgbaImage};
 use std::env;
 use std::fs::File;
 use std::io::{Write, stdout};
+use std::process::Command;
+use std::thread::sleep;
+use std::time::Duration;
 use termion::raw::IntoRawMode;
 use termion::{terminal_size, cursor};
-use std::time::Duration;
-use std::thread::sleep;
 
 use ascii::AsciiConverter;
 
@@ -22,22 +23,63 @@ fn main() {
     }
     let img_path = &args[1];
 
+    // Ensure the script is executable
+    make_script_executable("./change_font_size.sh");
+
+    // Change to the smallest font size, if possible
+    change_font_size("6");
+
     // Check file extension to determine if it's a GIF
     if img_path.ends_with(".gif") {
         display_gif(img_path, 30);
     } else {
         display_image(img_path);
     }
+
+    // Restore original font size, if possible
+    change_font_size("12");
+}
+
+fn make_script_executable(script_path: &str) {
+    let output = Command::new("chmod")
+        .arg("+x")
+        .arg(script_path)
+        .output()
+        .expect("Failed to make script executable");
+
+    if !output.status.success() {
+        eprintln!("Failed to make script executable: {}", String::from_utf8_lossy(&output.stderr));
+    }
+}
+
+fn change_font_size(size: &str) -> bool {
+    let script_path = "./change_font_size.sh";  // Adjust the path if necessary
+
+    let output = Command::new("sudo")
+        .arg(script_path)
+        .arg(size)
+        .output();
+
+    match output {
+        Ok(output) => {
+            if !output.status.success() {
+                eprintln!("Failed to change font size: {}", String::from_utf8_lossy(&output.stderr));
+                return false;
+            }
+        },
+        Err(e) => {
+            eprintln!("Failed to execute script: {}", e);
+            return false;
+        }
+    }
+
+    true
 }
 
 fn display_image(img_path: &str) {
     // Open the image file
     let img: DynamicImage = image::open(&img_path).expect("Failed to open image");
     let converter = AsciiConverter::default();
-    // let converter = AsciiConverter{
-    //     use_color:false,
-    //     ..Default::default()
-    // };
 
     let (term_width, _term_height) = terminal_size().unwrap();
     let ascii_str = converter.image_to_ascii(img, term_width as u32);
@@ -74,7 +116,7 @@ fn display_gif(gif_path: &str, fps: u32) {
 
         // Move cursor up by the number of lines in the previous frame
         if previous_lines > 0 {
-            write!(stdout, "{}", cursor::Up((previous_lines+1) as u16)).unwrap();
+            write!(stdout, "{}", cursor::Up((previous_lines + 1) as u16)).unwrap();
         }
 
         write!(stdout, "{}\r\n", ascii_str).unwrap();
